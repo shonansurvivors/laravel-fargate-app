@@ -24,3 +24,7 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
           role-to-assume: ${{ secrets.PROD_AWS_ASSUME_ROLE_ARN }}
           role-duration-seconds: 1800
+
+      - name: Set env vars for prod
+        # if: github.ref == 'refs/heads/main'
+        run: echo "ENV_NAME=prod" >> $GITHUB_ENV
