@@ -31,7 +31,7 @@ jobs:
 
       - uses: actions/checkout@v2
 
-      - run: docker-compose up -d --build app
+      - run: docker-compose up -d --build app web
 
       - name: Cache composer
         id: cache-composer
@@ -40,6 +40,17 @@ jobs:
           path: backend/vendor
           key: composer-v1-${{ hashFiles('backend/composer.lock') }}
 
-      - name: Composer install
-        run: docker-compose exec -T app composer install -n --prefer-dist --no-dev
+      - run: docker-compose exec -T app composer install -n --prefer-dist --no-dev
         if: steps.cache-composer.outputs.cache-hit != 'true'
+
+      - name: Cache npm
+        id: cache-npm-ci
+        uses: actions/cache@v2
+        with:
+          path: backend/node_modules
+          key: npm-v1-${{ hashFiles('backend/package-lock.json') }}
+
+      - run: docker-compose exec -T web npm ci
+        if: steps.cache-npm-ci.outputs.cache-hit != 'true'
+
+      - run: docker-compose exec -T web npm run prod
