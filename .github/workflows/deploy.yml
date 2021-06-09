@@ -30,3 +30,16 @@ jobs:
         run: echo "ENV_NAME=prod" >> $GITHUB_ENV
 
       - uses: actions/checkout@v2
+
+      - run: docker-compose up -d --build app
+
+      - name: Cache composer
+        id: cache-composer
+        uses: actions/cache@v2
+        with:
+          path: backend/vendor
+          key: composer-v1-${{ hashFiles('backend/composer.lock') }}
+
+      - name: Composer install
+        run: docker-compose exec -T app composer install -n --prefer-dist --no-dev
+        if: steps.cache-composer.outputs.cache-hit != 'true'
