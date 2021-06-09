@@ -8,6 +8,9 @@ on:
 
 env:
   AWS_REGION: ap-northeast-1
+  IMAGE_TAG: ${{ github.sha }}
+  SYSTEM_NAME: example
+  SERVICE_NAME: foobar
 
 jobs:
   deploy:
@@ -54,3 +57,20 @@ jobs:
         if: steps.cache-npm-ci.outputs.cache-hit != 'true'
 
       - run: docker-compose exec -T web npm run prod
+
+      - uses: aws-actions/amazon-ecr-login@v1
+        id: amazon-ecr-login
+
+      - name: Push nginx image to ecr
+        env:
+          DOCKER_BUILDKIT: 1
+          ECR_REGISTRY: ${{ steps.amazon-ecr-login.outputs.registry }}
+          ECR_REPOSITORY: ${{ env.SYSTEM_NAME }}-${{ env.ENV_NAME }}-${{ env.SERVICE_NAME }}-nginx
+        run: |
+          docker build \
+            --cache-from=$ECR_REGISTRY/$ECR_REPOSITORY:latest --build-arg BUILDKIT_INLINE_CACHE=1 . \
+            -f infra/docker/nginx/Dockerfile \
+            -t $ECR_REGISTRY/$ECR_REPOSITORY:latest \
+            -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
