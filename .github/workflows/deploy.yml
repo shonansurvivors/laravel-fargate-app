@@ -44,7 +44,7 @@ jobs:
           key: composer-v1-${{ hashFiles('backend/composer.lock') }}
 
       - run: docker-compose exec -T app composer install -n --prefer-dist --no-dev
-        if: steps.cache-composer.outputs.cache-hit != 'true'
+        if: ${{ !steps.cache-composer.outputs.cache-hit }}
 
       - name: Cache npm
         id: cache-npm-ci
@@ -54,7 +54,7 @@ jobs:
           key: npm-v1-${{ hashFiles('backend/package-lock.json') }}
 
       - run: docker-compose exec -T web npm ci
-        if: steps.cache-npm-ci.outputs.cache-hit != 'true'
+        if: ${{ !steps.cache-npm-ci.outputs.cache-hit }}
 
       - run: docker-compose exec -T web npm run prod
 
