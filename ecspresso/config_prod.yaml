@@ -1,0 +1,10 @@
+region: ap-northeast-1
+cluster: example-prod-foobar
+service: example-prod-foobar
+service_definition: ecs-service-def.json
+task_definition: ecs-task-def.json
+timeout: 10m0s
+plugins:
+  - name: tfstate
+    config:
+      url: s3://shonansurvivors-tfstate/example/prod/cicd/app_foobar_v1.0.0.tfstate
