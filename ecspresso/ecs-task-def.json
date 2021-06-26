@@ -8,7 +8,12 @@
           "containerName": "php"
         }
       ],
-      "environment": [],
+      "environment": [
+        {
+          "name": "VPC_CIDR",
+          "value": "{{ must_env `VPC_CIDR` }}"
+        }
+      ],
       "essential": true,
       "image": "{{ tfstate `data.aws_ecr_repository.nginx.repository_url` }}:{{ must_env `IMAGE_TAG` }}",
       "logConfiguration": {
