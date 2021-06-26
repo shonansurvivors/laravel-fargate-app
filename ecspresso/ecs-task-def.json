@@ -39,6 +39,12 @@
     {
       "cpu": 0,
       "environment": [],
+      "environmentFiles": [
+        {
+          "type": "s3",
+          "value": "{{ tfstate `data.aws_s3_bucket.env_file.arn` }}/{{ must_env `IMAGE_TAG` }}/.env"
+        }
+      ],
       "essential": true,
       "image": "{{ tfstate `data.aws_ecr_repository.php.repository_url` }}:{{ must_env `IMAGE_TAG` }}",
       "logConfiguration": {
