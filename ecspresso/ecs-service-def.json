@@ -16,7 +16,7 @@
   },
   "desiredCount": 1,
   "enableECSManagedTags": false,
-  "enableExecuteCommand": false,
+  "enableExecuteCommand": true,
   "healthCheckGracePeriodSeconds": 60,
   "loadBalancers": [
     {
