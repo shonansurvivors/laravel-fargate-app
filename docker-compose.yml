@@ -42,6 +42,8 @@ services:
       - type: bind
         source: ./backend
         target: /work/backend
+    environment:
+      - VPC_CIDR=${VPC_CIDR:-172.32.0.0/16}
 
   db:
     build:
@@ -63,3 +65,9 @@ services:
       - MYSQL_USER=${DB_USER:-phper}
       - MYSQL_PASSWORD=${DB_PASS:-secret}
       - MYSQL_ROOT_PASSWORD=${DB_PASS:-secret}
+
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: ${VPC_CIDR:-172.32.0.0/16}

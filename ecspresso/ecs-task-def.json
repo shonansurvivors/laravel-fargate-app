@@ -8,7 +8,12 @@
           "containerName": "php"
         }
       ],
-      "environment": [],
+      "environment": [
+        {
+          "name": "VPC_CIDR",
+          "value": "{{ must_env `VPC_CIDR` }}"
+        }
+      ],
       "essential": true,
       "image": "{{ tfstate `data.aws_ecr_repository.nginx.repository_url` }}:{{ must_env `IMAGE_TAG` }}",
       "logConfiguration": {
@@ -38,7 +43,14 @@
     },
     {
       "cpu": 0,
+      "command": ["sh", "scripts/deploy.sh"],
       "environment": [],
+      "environmentFiles": [
+        {
+          "type": "s3",
+          "value": "{{ tfstate `data.aws_s3_bucket.env_file.arn` }}/{{ must_env `IMAGE_TAG` }}/.env"
+        }
+      ],
       "essential": true,
       "image": "{{ tfstate `data.aws_ecr_repository.php.repository_url` }}:{{ must_env `IMAGE_TAG` }}",
       "logConfiguration": {

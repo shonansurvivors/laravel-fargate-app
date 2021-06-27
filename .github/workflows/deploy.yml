@@ -29,7 +29,9 @@ jobs:
 
       - name: Set env vars for prod
         if: github.ref == 'refs/heads/main'
-        run: echo "ENV_NAME=prod" >> $GITHUB_ENV
+        run: |
+          echo "ENV_NAME=prod" >> $GITHUB_ENV
+          echo "VPC_CIDR=172.32.0.0/16" >> $GITHUB_ENV
 
       - uses: actions/checkout@v2
 
@@ -87,6 +89,10 @@ jobs:
             -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+      - name: Upload env file
+        run: aws s3 cp .env.$ENV_NAME s3://shonansurvivors-$SYSTEM_NAME-$ENV_NAME-$SERVICE_NAME-env-file/$IMAGE_TAG/.env
+        working-directory: backend
 
       - name: Download ecspresso
         uses: kayac/ecspresso@v0
