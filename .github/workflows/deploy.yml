@@ -3,7 +3,7 @@ name: deploy
 on:
   push:
     branches:
-      - feature/create_redis
+      - fix/create_redis
 
 env:
   AWS_REGION: ap-northeast-1
