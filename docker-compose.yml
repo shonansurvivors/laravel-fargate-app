@@ -43,7 +43,7 @@ services:
         source: ./backend
         target: /work/backend
     environment:
-      - VPC_CIDR=${VPC_CIDR:-172.32.0.0/16}
+      - VPC_CIDR=${VPC_CIDR:-172.31.0.0/16}
 
   db:
     build:
@@ -70,4 +70,4 @@ networks:
   default:
     ipam:
       config:
-        - subnet: ${VPC_CIDR:-172.32.0.0/16}
+        - subnet: ${VPC_CIDR:-172.31.0.0/16}
