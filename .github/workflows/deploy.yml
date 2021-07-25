@@ -31,7 +31,7 @@ jobs:
         if: github.ref == 'refs/heads/main'
         run: |
           echo "ENV_NAME=prod" >> $GITHUB_ENV
-          echo "VPC_CIDR=172.32.0.0/16" >> $GITHUB_ENV
+          echo "VPC_CIDR=172.31.0.0/16" >> $GITHUB_ENV
 
       - uses: actions/checkout@v2
 
