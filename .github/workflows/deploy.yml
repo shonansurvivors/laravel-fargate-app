@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - test_node
 
 env:
   AWS_REGION: ap-northeast-1
@@ -17,35 +18,35 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Configure aws credentials for prod
-        if: github.ref == 'refs/heads/main'
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-access-key-id: ${{ secrets.PROD_AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.PROD_AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
-          role-to-assume: ${{ secrets.PROD_AWS_ASSUME_ROLE_ARN }}
-          role-duration-seconds: 1800
-
-      - name: Set env vars for prod
-        if: github.ref == 'refs/heads/main'
-        run: |
-          echo "ENV_NAME=prod" >> $GITHUB_ENV
-          echo "VPC_CIDR=172.31.0.0/16" >> $GITHUB_ENV
+#      - name: Configure aws credentials for prod
+#        if: github.ref == 'refs/heads/main'
+#        uses: aws-actions/configure-aws-credentials@v1
+#        with:
+#          aws-access-key-id: ${{ secrets.PROD_AWS_ACCESS_KEY_ID }}
+#          aws-secret-access-key: ${{ secrets.PROD_AWS_SECRET_ACCESS_KEY }}
+#          aws-region: ${{ env.AWS_REGION }}
+#          role-to-assume: ${{ secrets.PROD_AWS_ASSUME_ROLE_ARN }}
+#          role-duration-seconds: 1800
+#
+#      - name: Set env vars for prod
+#        if: github.ref == 'refs/heads/main'
+#        run: |
+#          echo "ENV_NAME=prod" >> $GITHUB_ENV
+#          echo "VPC_CIDR=172.31.0.0/16" >> $GITHUB_ENV
 
       - uses: actions/checkout@v2
 
-      - run: docker-compose up -d --build app web
-
-      - name: Cache composer
-        id: cache-composer
-        uses: actions/cache@v2
-        with:
-          path: backend/vendor
-          key: composer-v1-${{ hashFiles('backend/composer.lock') }}
-
-      - run: docker-compose exec -T app composer install -n --prefer-dist --no-dev
-        if: ${{ !steps.cache-composer.outputs.cache-hit }}
+#      - run: docker-compose up -d --build app web
+#
+#      - name: Cache composer
+#        id: cache-composer
+#        uses: actions/cache@v2
+#        with:
+#          path: backend/vendor
+#          key: composer-v1-${{ hashFiles('backend/composer.lock') }}
+#
+#      - run: docker-compose exec -T app composer install -n --prefer-dist --no-dev
+#        if: ${{ !steps.cache-composer.outputs.cache-hit }}
 
       - name: Cache npm
         id: cache-npm-ci
@@ -54,63 +55,69 @@ jobs:
           path: backend/node_modules
           key: npm-v1-${{ hashFiles('backend/package-lock.json') }}
 
-      - run: docker-compose exec -T web npm ci
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 16
+
+      - run: npm ci
         if: ${{ !steps.cache-npm-ci.outputs.cache-hit }}
-
-      - run: docker-compose exec -T web npm run prod
-
-      - uses: aws-actions/amazon-ecr-login@v1
-        id: amazon-ecr-login
-
-      - name: Push nginx image to ecr
-        env:
-          DOCKER_BUILDKIT: 1
-          ECR_REGISTRY: ${{ steps.amazon-ecr-login.outputs.registry }}
-          ECR_REPOSITORY: ${{ env.SYSTEM_NAME }}-${{ env.ENV_NAME }}-${{ env.SERVICE_NAME }}-nginx
-        run: |
-          docker build \
-            --cache-from=$ECR_REGISTRY/$ECR_REPOSITORY:latest --build-arg BUILDKIT_INLINE_CACHE=1 . \
-            -f infra/docker/nginx/Dockerfile \
-            -t $ECR_REGISTRY/$ECR_REPOSITORY:latest \
-            -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-
-      - name: Push php image to ecr
-        env:
-          DOCKER_BUILDKIT: 1
-          ECR_REGISTRY: ${{ steps.amazon-ecr-login.outputs.registry }}
-          ECR_REPOSITORY: ${{ env.SYSTEM_NAME }}-${{ env.ENV_NAME }}-${{ env.SERVICE_NAME }}-php
-        run: |
-          docker build \
-            --cache-from=$ECR_REGISTRY/$ECR_REPOSITORY:latest --build-arg BUILDKIT_INLINE_CACHE=1 . \
-            -f infra/docker/php/Dockerfile \
-            -t $ECR_REGISTRY/$ECR_REPOSITORY:latest \
-            -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-
-      - name: Upload env file
-        run: aws s3 cp .env.$ENV_NAME s3://shonansurvivors-$SYSTEM_NAME-$ENV_NAME-$SERVICE_NAME-env-file/$IMAGE_TAG/.env
         working-directory: backend
 
-      - name: Download ecspresso
-        uses: kayac/ecspresso@v0
-        with:
-          version: v1.5.3
+      - run: npm run prod
+        working-directory: backend
 
-      - name: Register task definition
-        run: ecspresso register --config config_$ENV_NAME.yaml
-        working-directory: ./ecspresso
-
-      - name: Migrate database
-        run: |
-          ecspresso run --config config_$ENV_NAME.yaml \
-            --latest-task-definition \
-            --watch-container=php \
-            --overrides='{"containerOverrides":[{"name":"nginx", "command":["nginx", "-v"]},{"name":"php", "command":["php", "artisan", "migrate", "--force"]}]}'
-        working-directory: ./ecspresso
-
-      - name: Deploy to ecs
-        run: ecspresso deploy --config config_$ENV_NAME.yaml --latest-task-definition
-        working-directory: ./ecspresso
+#      - uses: aws-actions/amazon-ecr-login@v1
+#        id: amazon-ecr-login
+#
+#      - name: Push nginx image to ecr
+#        env:
+#          DOCKER_BUILDKIT: 1
+#          ECR_REGISTRY: ${{ steps.amazon-ecr-login.outputs.registry }}
+#          ECR_REPOSITORY: ${{ env.SYSTEM_NAME }}-${{ env.ENV_NAME }}-${{ env.SERVICE_NAME }}-nginx
+#        run: |
+#          docker build \
+#            --cache-from=$ECR_REGISTRY/$ECR_REPOSITORY:latest --build-arg BUILDKIT_INLINE_CACHE=1 . \
+#            -f infra/docker/nginx/Dockerfile \
+#            -t $ECR_REGISTRY/$ECR_REPOSITORY:latest \
+#            -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+#          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+#          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+#
+#      - name: Push php image to ecr
+#        env:
+#          DOCKER_BUILDKIT: 1
+#          ECR_REGISTRY: ${{ steps.amazon-ecr-login.outputs.registry }}
+#          ECR_REPOSITORY: ${{ env.SYSTEM_NAME }}-${{ env.ENV_NAME }}-${{ env.SERVICE_NAME }}-php
+#        run: |
+#          docker build \
+#            --cache-from=$ECR_REGISTRY/$ECR_REPOSITORY:latest --build-arg BUILDKIT_INLINE_CACHE=1 . \
+#            -f infra/docker/php/Dockerfile \
+#            -t $ECR_REGISTRY/$ECR_REPOSITORY:latest \
+#            -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+#          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+#          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+#
+#      - name: Upload env file
+#        run: aws s3 cp .env.$ENV_NAME s3://shonansurvivors-$SYSTEM_NAME-$ENV_NAME-$SERVICE_NAME-env-file/$IMAGE_TAG/.env
+#        working-directory: backend
+#
+#      - name: Download ecspresso
+#        uses: kayac/ecspresso@v0
+#        with:
+#          version: v1.5.3
+#
+#      - name: Register task definition
+#        run: ecspresso register --config config_$ENV_NAME.yaml
+#        working-directory: ./ecspresso
+#
+#      - name: Migrate database
+#        run: |
+#          ecspresso run --config config_$ENV_NAME.yaml \
+#            --latest-task-definition \
+#            --watch-container=php \
+#            --overrides='{"containerOverrides":[{"name":"nginx", "command":["nginx", "-v"]},{"name":"php", "command":["php", "artisan", "migrate", "--force"]}]}'
+#        working-directory: ./ecspresso
+#
+#      - name: Deploy to ecs
+#        run: ecspresso deploy --config config_$ENV_NAME.yaml --latest-task-definition
+#        working-directory: ./ecspresso
